@@ -1,0 +1,74 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <script src="chart.js"></script>
+</head>
+
+<body>
+    <h2>Operational Performance Dashboard</h2>
+
+    <div class="controls">
+        <label>Select Bar Metric</label>
+        <select name="barMetricSelector" onchange="updateChart()">
+            <option value="revenue">Revenue</option>
+            <option value="units">Units Sold</option>
+        </select>
+
+        <label>Start Date</label><input type="date" id="startDate" value="2026-01-01">
+        <label>End Date</label><input type="date" id="endDate" value="2026-01-31">
+        <button onclick="updateChart()">Apply Filter</button>
+
+    </div>
+
+    <div class="chart-container" style="max-width: 800px; margin: 0, auto">
+        <canvas id="myChart"></canvas>
+
+    </div>
+
+
+    <script>
+        const fullData = [
+            { date: '2026-01-05', revenue: 1200, units: 530 },
+            { date: '2026-01-05', revenue: 1900, units: 250 },
+            { date: '2026-01-05', revenue: 1500, units: 1100 },
+            { date: '2026-01-05', revenue: 2000, units: 250 },
+            { date: '2026-01-05', revenue: 3500, units: 560 },
+            { date: '2026-01-05', revenue: 3650, units: 2410 },
+
+        ];
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        let myChart = new Chart(ctx, {
+            data: {
+                labels: fullData.map(d => d.date),
+                datasets: [
+                    { type: 'bar', label: 'Bar Metric', data: fullData.map(d => d.revenue), backgroundColor: 'rgba(54, 162, 235, 0.5)' },
+                    { type: 'line', label: 'Unit Sold (Trend)', data: fullData.map(d => d.units), borderColor: 'red', fill: false },
+
+                ]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+
+        function updateChart() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            const barMetric = document.getElementById('barMetricSelector').value;
+
+
+            const filtered = fullData.filter(item => item.date >= start && item.date <= end);
+
+            myChart.data.labels = filtered.map(item => item.date);
+            myChart.data.datasets[0].data = filtered.map(item => item[barMetric]);
+            myChart.data.datasets[1].data = filtered.map(item => item.units);
+            myChart.update();
+
+        }
+    </script>
+
+</body>
+
+</html>

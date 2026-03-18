@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <h2>Performance Dashboard</h2>
+
+    <div class="controls">
+        <label>Upload:</label>
+        <input type="file" id="csvFile" accept=".csv" onchange="loadAndProcess()">
+
+        <label>Start:</label>
+        <input type="date" id="startDate">
+
+        <label>End:</label>
+        <input type="date" id="endDate">
+
+        <button id="applyFilter" onclick="updateChart()">Apply Filter</button>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script>
+    let fullData = [];
+    let myChart;
+
+    function loadAndProcess() {
+        const file = document.getElementById('csvFile').files[0];
+        Papa.parse(file, {
+            header: true,
+            dynamicTyping: true,
+            complete: function(results) {
+                fullData = results.data;
+                updateChart();
+            }
+        });
+    }
+
+    function updateChart() {
+        if (fullData.length === 0) return;
+
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+
+        let filtered = fullData.filter(d => {
+            const date = d[Object.keys(d)[0]];
+            if (start && end) return date >= start && date <= end;
+            return true;
+        });
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        if (myChart) myChart.destroy();
+
+        const keys = Object.keys(fullData[0]);
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: filtered.map(d => d[keys[0]]),
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: keys[1],
+                        data: filtered.map(d => d[keys[1]]),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                    },
+                    {
+                        type: 'line',
+                        label: keys[2],
+                        data: filtered.map(d => d[keys[2]]),
+                        borderColor: 'red',
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    </script>
+
+</body>
+</html>

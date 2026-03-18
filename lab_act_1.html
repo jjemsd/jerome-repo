@@ -1,0 +1,62 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <script src="chart.js"></script>
+</head>
+
+<body>
+    <h2>Academic Performance Dashboard</h2>
+
+    <div class="controls">
+        <label>Start Date</label><input type="date" id="startDate" value="2026-01-01">
+        <label>End Date</label><input type="date" id="endDate" value="2026-01-31">
+        <button onclick="updateChart()">Apply Filter</button>
+    </div>
+
+    <div class="chart-container" style="max-width: 800px">
+        <canvas id="myChart"></canvas>
+
+    </div>
+
+    <script>
+        const fullData = [
+            { date: '2026-01-05', value: 12 },
+            { date: '2026-01-12', value: 19 },
+            { date: '2026-01-18', value: 15 },
+            { date: '2026-01-25', value: 22 },
+            { date: '2026-02-05', value: 85 },
+            { date: '2026-02-12', value: 14 },
+            { date: '2026-02-15', value: 100 },
+            { date: '2026-02-25', value: 2232 },
+
+        ];
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        let myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: fullData.map(d => d.date),
+                datasets: [{ label: 'Performance Metrics', data: fullData.map(d => d.value), backgroundColor: 'blue' }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        });
+
+        function updateChart() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+
+            const filtered = fullData.filter(item => item.date >= start && item.date <= end);
+
+            myChart.data.labels = filtered.map(item => item.date);
+            myChart.data.datasets[0].data = filtered.map(item => item.date);
+            myChart.updateChart();
+
+        }
+    </script>
+
+</body>
+
+</html>
