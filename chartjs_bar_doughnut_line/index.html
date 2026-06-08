@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart JS</title>
+    <script src="chart.js"></script>
+</head>
+<body>
+    <style>
+    body { 
+        font-family: sans-serif; 
+        max-width: 720px; 
+        margin: 40px auto; 
+        padding: 0 20px; 
+        background: #f9f9fb; 
+        }
+
+    h1 { 
+        font-size: 1.5rem; 
+        color: #333; 
+        }
+
+    .card { 
+        background: white; 
+        border-radius: 12px;    
+        padding: 24px; 
+        margin-bottom: 32px; 
+        box-shadow: 0 2px 10px rgba(0,0,0,0.07); 
+    }
+    h2 { 
+        font-size: 1rem; 
+        color: #555; 
+        margin-top: 0; 
+    }
+    .tip { 
+        font-size: 0.82rem; 
+        color: #6366f1; 
+        margin-top: 12px; 
+    }
+  </style>
+
+    <div class="card">
+        <h1>Bar Chart</h1>
+        <canvas id="barChart"></canvas>
+    </div>
+
+    <div class = "card">
+        <h1>Line Chart</h1>
+        <canvas id="lineChart"></canvas>
+    </div>
+
+    <div class = "card">
+        <h1>Doughnut Chart</h1>
+        <canvas id="doughnutChart"></canvas>
+    </div>
+
+    <script>
+        const barChart  = new Chart(document.getElementById("barChart"),{
+            type: 'bar',
+            data:{
+                labels: [],
+                datasets:[{
+                    label: "Revenue per month",
+                    data: [],
+                    backgroundColor: '#6366f1',
+                    borderRadius: 6,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                }
+        })
+
+        const lineChart = new Chart(document.getElementById("lineChart"), {
+            type: 'line',
+            data: {
+                labels:[],
+                datasets:[{
+                    label: "Revenue per month",
+                    data:[],
+                    borderColor: '#ec4899',
+                    backgroundColor: 'rgba(236,72,153,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                }]
+            } 
+        })
+
+        const doughnutChart = new Chart(document.getElementById('doughnutChart'), {
+      type: 'doughnut',             
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f97316'],
+          hoverOffset: 10,
+        }]
+      }
+    });
+
+       async function parseCSV(csv) {
+        const rows = csv.trim().split('\n');
+        rows.shift();
+
+        const labels = [];
+        const values = [];
+
+        rows.forEach(row => {
+            if (!row.trim())  return;
+            const cols = row.split(',');
+            labels.push(cols[0]. trim());
+            values.push(Number(cols[1].trim()));
+        });
+        return {labels, values}
+        }
+
+        async function loadChart() {
+            const response = await fetch('data.csv');
+            const csvText = await response.text()
+            const {labels, values} = await parseCSV(csvText);
+
+            barChart.data.labels = labels;
+            barChart.data.datasets[0].data = values;
+            barChart.update()
+
+            lineChart.data.labels = labels;
+            lineChart.data.datasets[0].data = values;
+            lineChart.update()
+
+            doughnutChart.data.labels = labels;
+            doughnutChart.data.datasets[0].data = values;
+            doughnutChart.update()
+        }
+
+        loadChart()
+    </script>
+</body>
+</html>
