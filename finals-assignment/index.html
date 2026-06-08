@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Boat Operations Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #eef2f7;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            color: #333;
+        }
+        header {
+            background: #1e3a5f;
+            color: #fff;
+            padding: 18px 30px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        header h1 { margin: 0; font-size: 22px; }
+        header p  { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
+
+        .date-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            padding: 14px 20px;
+            margin: 18px auto;
+            max-width: 1400px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .date-filter label { font-weight: 600; font-size: 14px; }
+        .date-filter input[type="date"] {
+            padding: 7px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .date-filter button {
+            padding: 8px 18px;
+            background: #1e3a5f;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .date-filter button.secondary { background: #6c757d; }
+        .date-filter button:hover { opacity: 0.9; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            padding: 0 20px;
+        }
+        @media (max-width: 900px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-box {
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            position: relative;
+            min-height: 340px;
+        }
+        .chart-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+        }
+        .chart-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0 0 10px;
+            color: #1e3a5f;
+        }
+        .chart-canvas-wrap {
+            position: relative;
+            height: 280px;
+        }
+
+        .loader-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            z-index: 5;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #1e3a5f;
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        .loader-text {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .error-msg {
+            color: #c0392b;
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: #fff;
+            width: 90%;
+            max-width: 1100px;
+            max-height: 90vh;
+            border-radius: 10px;
+            padding: 20px 24px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
+        }
+        .modal-header h2 { margin: 0; font-size: 18px; color: #1e3a5f; }
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: #555;
+            line-height: 1;
+        }
+        .modal-canvas-wrap {
+            position: relative;
+            flex: 1;
+            min-height: 60vh;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Boat Operations Dashboard</h1>
+    </header>
+
+    <div class="date-filter">
+        <label for="start-date">Start Date:</label>
+        <input type="date" id="start-date">
+        <label for="end-date">End Date:</label>
+        <input type="date" id="end-date">
+        <button id="applyBtn">Apply Filter</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+
+    <div class="charts-grid" id="chartsGrid"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="modalTitle">Chart</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-canvas-wrap">
+                <canvas id="modalCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CHARTS = [
+            { key: 'monthly_revenue',         title: '1. Total Monthly Revenue',                type: 'line' },
+            { key: 'passenger_trends',        title: '2. Passenger Volume Trends',              type: 'line' },
+            { key: 'revenue_by_boat_size',    title: '3. Revenue vs. Boat Size',                type: 'bar'  },
+            { key: 'paid_unpaid',             title: '4. Paid vs. Unpaid Trips',                type: 'doughnut' },
+            { key: 'top_drivers',             title: '5. Top Drivers by Trip Count',            type: 'bar'  },
+            { key: 'cancelled_by_driver',     title: '6. Cancelled Trips by Driver',            type: 'bar'  },
+            { key: 'safety_compliance',       title: '7. Safety Compliance Rate',               type: 'radar' },
+            { key: 'inspections_by_personnel',title: '8. Inspections by Personnel',             type: 'bar'  },
+            { key: 'avg_speed_per_boat',      title: '9. Average Speed per Boat (IoT)',         type: 'bar'  },
+            { key: 'revenue_by_tour_type',    title: '10. Revenue by Tour Type',                type: 'bar'  },
+            { key: 'capacity_vs_passengers',  title: '11. Boat Capacity vs. Actual Passengers', type: 'bar'  },
+            { key: 'payment_completion',      title: '12. Payment Completion Rate',             type: 'pie'  },
+            { key: 'avg_speed_by_size',       title: '13. Average Speed by Boat Size',          type: 'bar'  },
+            { key: 'peak_hours',              title: '14. Peak Activity Hours (24h)',           type: 'line' }
+        ];
+
+        const chartInstances  = {};
+        const chartDataCache  = {};
+        let   modalChart      = null;
+
+        function buildChartBoxes() {
+            const grid = document.getElementById('chartsGrid');
+            grid.innerHTML = '';
+            CHARTS.forEach(cfg => {
+                const box = document.createElement('div');
+                box.className = 'chart-box';
+                box.dataset.key = cfg.key;
+                box.innerHTML = `
+                    <h3 class="chart-title">${cfg.title}</h3>
+                    <div class="chart-canvas-wrap">
+                        <canvas id="canvas_${cfg.key}"></canvas>
+                        <div class="loader-overlay" id="loader_${cfg.key}">
+                            <div class="loader"></div>
+                            <div class="loader-text">Loading...</div>
+                        </div>
+                    </div>
+                `;
+                box.addEventListener('click', () => openModal(cfg));
+                grid.appendChild(box);
+            });
+        }
+
+        function getDateParams() {
+            const s = document.getElementById('start-date').value;
+            const e = document.getElementById('end-date').value;
+            const p = new URLSearchParams();
+            if (s) p.set('start', s);
+            if (e) p.set('end',   e);
+            return p;
+        }
+
+        function chartOptions(type) {
+            const base = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+            };
+            if (['bar','line'].includes(type)) {
+                base.scales = { y: { beginAtZero: true } };
+            }
+            if (type === 'radar') {
+                base.scales = { r: { beginAtZero: true, max: 100 } };
+            }
+            return base;
+        }
+
+        async function loadChart(cfg) {
+            const loader = document.getElementById('loader_' + cfg.key);
+            const canvas = document.getElementById('canvas_' + cfg.key);
+            loader.style.display = 'flex';
+
+            try {
+                const params = getDateParams();
+                params.set('chart', cfg.key);
+                const res = await fetch('apiData.php?' + params.toString());
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                chartDataCache[cfg.key] = data;
+
+                if (chartInstances[cfg.key]) {
+                    chartInstances[cfg.key].destroy();
+                }
+
+                chartInstances[cfg.key] = new Chart(canvas.getContext('2d'), {
+                    type: cfg.type,
+                    data: { labels: data.labels, datasets: data.datasets },
+                    options: chartOptions(cfg.type)
+                });
+
+                loader.style.display = 'none';
+            } catch (err) {
+                console.error('Chart ' + cfg.key + ':', err);
+                loader.innerHTML = '<div class="error-msg">Failed to load.<br>' + err.message + '</div>';
+            }
+        }
+
+        function loadAllCharts() {
+            CHARTS.forEach(cfg => loadChart(cfg));
+        }
+
+        function openModal(cfg) {
+            const data = chartDataCache[cfg.key];
+            if (!data) return;
+            document.getElementById('modalTitle').innerText = cfg.title;
+            document.getElementById('modalOverlay').classList.add('active');
+
+            if (modalChart) modalChart.destroy();
+            const ctx = document.getElementById('modalCanvas').getContext('2d');
+            modalChart = new Chart(ctx, {
+                type: cfg.type,
+                data: { labels: data.labels, datasets: data.datasets },
+                options: chartOptions(cfg.type)
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            if (modalChart) { modalChart.destroy(); modalChart = null; }
+        }
+
+        document.getElementById('modalClose').addEventListener('click', closeModal);
+        document.getElementById('modalOverlay').addEventListener('click', e => {
+            if (e.target.id === 'modalOverlay') closeModal();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        document.getElementById('applyBtn').addEventListener('click', loadAllCharts);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('start-date').value = '';
+            document.getElementById('end-date').value   = '';
+            loadAllCharts();
+        });
+
+        buildChartBoxes();
+        loadAllCharts();
+    </script>
+</body>
+</html>
